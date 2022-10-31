@@ -1,5 +1,6 @@
 const express = require("express");
 const app = express();
+const redis = require("redis");
 const port = 3000;
 
 app.use(express.json({ limit: "30mb", extended: true }));
@@ -8,8 +9,13 @@ app.use(express.urlencoded({ limit: "30mb", extended: true }));
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
-const NodeCache = require("node-cache");
-const cache = new NodeCache();
+const redisClient = redis.createClient(6379);
+
+redisClient.on("error", (error) => {
+  console.error(error);
+});
+
+redisClient.connect();
 
 app.get("/", (req, res) => {
   const dateObject = new Date();
@@ -54,11 +60,11 @@ app.get("/:shortUrl", async (req, res) => {
 
   try {
     let urlObj;
-    const cacheResults = cache.get(_shortUrl);
 
-    if (cacheResults) {
-      console.log("url desde cache");
-      urlObj = cacheResults;
+    const cacheResult = await redisClient.get(_shortUrl);
+
+    if (cacheResult) {
+      urlObj = JSON.parse(cacheResult);
     } else {
       console.log("url desde db");
       urlObj = await prisma.url.findUnique({
@@ -67,26 +73,23 @@ app.get("/:shortUrl", async (req, res) => {
         },
       });
 
-      cacheResponse = cache.set(urlObj.shortUrl, urlObj);
-
-      if (cacheResponse) {
-        console.log("se guardó correctamente en caché");
-      } else {
-        console.log("error al guardar en caché");
+      if (urlObj == null) {
+        res.status(404).send("No encontramos la url");
+        return false;
       }
+
+      cacheResponse = redisClient.setEx(
+        urlObj.shortUrl,
+        1440,
+        JSON.stringify(urlObj)
+      );
     }
 
-    console.log(urlObj);
-    if (urlObj == null) {
-      res.status(404).send("No encontramos la url");
-      return false;
-    }
-
-    /*await prisma.urlLog.create({
+    await prisma.urlLog.create({
       data: {
         urlId: urlObj.id,
       },
-    });*/
+    });
 
     res.redirect(urlObj.longUrl);
   } catch (error) {
