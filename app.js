@@ -64,6 +64,7 @@ app.get("/:shortUrl", async (req, res) => {
     const cacheResult = await redisClient.get(_shortUrl);
 
     if (cacheResult) {
+      console.log("url desde cache");
       urlObj = JSON.parse(cacheResult);
     } else {
       console.log("url desde db");
