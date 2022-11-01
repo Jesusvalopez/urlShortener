@@ -1,6 +1,7 @@
 const express = require("express");
 const app = express();
 const redis = require("redis");
+const bull = require("bull");
 const port = 3000;
 
 app.use(express.json({ limit: "30mb", extended: true }));
@@ -9,13 +10,17 @@ app.use(express.urlencoded({ limit: "30mb", extended: true }));
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
-const redisClient = redis.createClient(6379);
+const redisCacheClient = redis.createClient(6379);
 
-redisClient.on("error", (error) => {
+const bullQueue = new bull("urlQueue", {
+  redis: { port: 6380 },
+});
+
+redisCacheClient.on("error", (error) => {
   console.error(error);
 });
 
-redisClient.connect();
+redisCacheClient.connect();
 
 app.get("/", (req, res) => {
   const dateObject = new Date();
@@ -26,6 +31,7 @@ app.get("/", (req, res) => {
 //TODO: mover esto a .env
 const DOMAIN = "http://localhost:3000/";
 
+//Crear url corta a partir de una larga
 app.post("/shortener", async (req, res) => {
   console.log(req.body);
   const longUrl = req.body.longUrl;
@@ -43,6 +49,7 @@ app.post("/shortener", async (req, res) => {
   res.status(200).send(DOMAIN + "" + shortUrl);
 });
 
+//Retornar url larga en base a una corta
 app.get("/longUrl/:shortUrl", async (req, res) => {
   const { shortUrl: _shortUrl } = req.params;
 
@@ -55,19 +62,17 @@ app.get("/longUrl/:shortUrl", async (req, res) => {
   res.status(200).send(url.longUrl);
 });
 
+//Funcionalidad redireccionar url corta a larga
 app.get("/:shortUrl", async (req, res) => {
   const { shortUrl: _shortUrl } = req.params;
-
   try {
     let urlObj;
-
-    const cacheResult = await redisClient.get(_shortUrl);
+    const cacheResult = await redisCacheClient.get(_shortUrl);
 
     if (cacheResult) {
-      console.log("url desde cache");
       urlObj = JSON.parse(cacheResult);
     } else {
-      console.log("url desde db");
+      //leer url desde la bd
       urlObj = await prisma.url.findUnique({
         where: {
           shortUrl: _shortUrl,
@@ -79,17 +84,20 @@ app.get("/:shortUrl", async (req, res) => {
         return false;
       }
 
-      cacheResponse = redisClient.setEx(
+      //almacenar en caché la url para próximas peticiones
+      cacheResponse = redisCacheClient.setEx(
         urlObj.shortUrl,
         1440,
         JSON.stringify(urlObj)
       );
     }
 
-    await prisma.urlLog.create({
-      data: {
-        urlId: urlObj.id,
-      },
+    //agregar inserción de estadistica en la cola
+    const date = new Date();
+
+    await bullQueue.add({
+      urlId: urlObj.id,
+      date: date,
     });
 
     res.redirect(urlObj.longUrl);
