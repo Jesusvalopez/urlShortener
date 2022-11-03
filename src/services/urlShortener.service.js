@@ -54,6 +54,11 @@ async function shortRedirect(_shortUrl) {
   } else {
     //leer url desde la bd
     urlObj = await readUrlFromDB(_shortUrl);
+
+    if (urlObj == null) {
+      return null;
+    }
+
     //almacenar en caché la url para próximas peticiones
     if (isRedisCacheUp()) {
       cacheResponse = redisCacheClient.set(
@@ -78,11 +83,6 @@ async function readUrlFromDB(_shortUrl) {
       shortUrl: _shortUrl,
     },
   });
-
-  if (urlObj == null) {
-    res.status(404).send("No encontramos la url");
-    return false;
-  }
 
   return urlObj;
 }
