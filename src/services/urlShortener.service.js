@@ -10,20 +10,41 @@ const {
 } = require("./redis.service");
 
 //TODO: mover esto a .env
-const DOMAIN = "http://localhost:3000/";
+const DOMAIN = "http://localhost/";
+
+function randomString(length) {
+  var mask = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  return [...Array(length)].reduce(
+    (result) => result + mask[~~(Math.random() * mask.length)],
+    ""
+  );
+}
 
 async function createShort(longUrl) {
-  const shortUrl = (Math.random() + 1).toString(36).substring(6);
+  let shortUrl = randomString(6);
 
-  //url larga debe venir en formato https:// si no viene así, agregalo.
+  if (longUrl.indexOf("http://") == -1 && longUrl.indexOf("https://") == -1) {
+    longUrl = "https://" + longUrl;
+  }
 
-  await prisma.url.create({
-    data: {
-      shortUrl: shortUrl,
-      longUrl: longUrl,
-    },
-  });
-
+  try {
+    await prisma.url.create({
+      data: {
+        shortUrl: shortUrl,
+        longUrl: longUrl,
+      },
+    });
+  } catch (error) {
+    console.log(error.message);
+    //reintento
+    shortUrl = randomString(6);
+    await prisma.url.create({
+      data: {
+        shortUrl: shortUrl,
+        longUrl: longUrl,
+      },
+    });
+  }
   return DOMAIN + "" + shortUrl;
 }
 
@@ -42,15 +63,12 @@ async function getLongUrl(_shortUrl) {
 async function shortRedirect(_shortUrl) {
   let urlObj;
   let cacheResult;
-  const initDate = new Date().getTime();
 
   if (isRedisCacheUp()) {
     //leer desde caché
     cacheResult = await redisCacheClient.get(_shortUrl);
   }
-  const finalDate = new Date().getTime();
-  console.log("Lectura cache: ");
-  console.log(finalDate - initDate);
+
   if (cacheResult) {
     urlObj = JSON.parse(cacheResult);
   } else {
@@ -65,25 +83,24 @@ async function shortRedirect(_shortUrl) {
     if (isRedisCacheUp()) {
       cacheResponse = redisCacheClient.set(
         urlObj.shortUrl,
-        JSON.stringify(urlObj)
+        JSON.stringify(urlObj),
+        "EX",
+        1440
       );
     }
   }
 
   //agregar inserción de estadistica en la cola
-  const initDate2 = new Date().getTime();
   await insertUrlUseStats(urlObj);
-  const finalDate2 = new Date().getTime();
-  console.log("Envio cola: ");
-  console.log(finalDate2 - initDate2);
 
   return urlObj.longUrl;
 }
 
 async function readUrlFromDB(_shortUrl) {
-  urlObj = await prisma.url.findUnique({
+  urlObj = await prisma.url.findFirst({
     where: {
       shortUrl: _shortUrl,
+      deletedAt: null,
     },
   });
 
@@ -108,13 +125,16 @@ async function insertUrlUseStats(urlObj) {
 }
 
 async function remove(_id) {
-  await prisma.url.update({
-    where: { id: _id },
+  const url = await prisma.url.update({
+    where: { id: parseInt(_id) },
     data: {
       deletedAt: new Date(),
     },
   });
 
+  if (isRedisCacheUp()) {
+    redisCacheClient.del(url.shortUrl);
+  }
   return "Url eliminada con éxito";
 }
 
