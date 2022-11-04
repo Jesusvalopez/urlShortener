@@ -115,10 +115,13 @@ async function readUrlFromDB(_shortUrl) {
 async function insertUrlUseStats(urlObj) {
   const date = new Date();
   if (isRedisQueueUp()) {
-    await bullQueue.add({
-      urlId: urlObj.id,
-      date: date,
-    });
+    await bullQueue.add(
+      {
+        urlId: urlObj.id,
+        date: date,
+      },
+      { attemps: 10, backoff: 10000 }
+    );
   } else {
     await prisma.urlLog.create({
       data: {

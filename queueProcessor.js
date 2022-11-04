@@ -9,11 +9,16 @@ const prisma = new PrismaClient();
 
 bullQueue.process(async (job, done) => {
   console.log(job.data);
-  await prisma.urlLog.create({
-    data: {
-      urlId: job.data.urlId,
-      createdAt: job.data.date,
-    },
-  });
+  try {
+    await prisma.urlLog.create({
+      data: {
+        urlId: job.data.urlId,
+        createdAt: job.data.date,
+      },
+    });
+  } catch (error) {
+    console.error("Ha ocurrido un error al procesar la cola", error.message);
+    done(new Error("Ha ocurrido un error al procesar la cola"));
+  }
   done();
 });
