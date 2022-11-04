@@ -2,7 +2,7 @@ const bull = require("bull");
 const { PrismaClient } = require("@prisma/client");
 
 const bullQueue = new bull("urlQueue", {
-  redis: { port: 6380 },
+  redis: { host: "redis_queue", port: 6379 },
 });
 
 const prisma = new PrismaClient();

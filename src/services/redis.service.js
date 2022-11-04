@@ -5,6 +5,7 @@ let redisCacheUp = true;
 let redisQueueUp = true;
 
 const redisCacheClient = redis.createClient({
+  host: "redis_cache",
   port: 6379,
   retryStrategy: (times) => {
     const delay = 2000;
@@ -13,7 +14,10 @@ const redisCacheClient = redis.createClient({
 });
 
 const bullQueue = new bull("urlQueue", {
-  redis: { port: 6380 },
+  redis: {
+    host: "redis_queue",
+    port: 6379,
+  },
 });
 
 bullQueue.on("error", (error) => {
@@ -22,6 +26,7 @@ bullQueue.on("error", (error) => {
 });
 
 bullQueue.on("connect", () => {
+  console.log("conectado a redis caché");
   redisQueueUp = true;
 });
 

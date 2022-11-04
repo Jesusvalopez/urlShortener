@@ -48,7 +48,9 @@ async function shortRedirect(_shortUrl) {
     //leer desde caché
     cacheResult = await redisCacheClient.get(_shortUrl);
   }
-
+  const finalDate = new Date().getTime();
+  console.log("Lectura cache: ");
+  console.log(finalDate - initDate);
   if (cacheResult) {
     urlObj = JSON.parse(cacheResult);
   } else {
@@ -69,10 +71,11 @@ async function shortRedirect(_shortUrl) {
   }
 
   //agregar inserción de estadistica en la cola
+  const initDate2 = new Date().getTime();
   await insertUrlUseStats(urlObj);
-
-  const finalDate = new Date().getTime();
-  console.log(finalDate - initDate);
+  const finalDate2 = new Date().getTime();
+  console.log("Envio cola: ");
+  console.log(finalDate2 - initDate2);
 
   return urlObj.longUrl;
 }

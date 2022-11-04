@@ -1,18 +1,40 @@
 version: "3.8"
 services:
-  redis-cache:
-    image: redis
-    container_name: redis_cache
+  app:
+    build:
+      context: ./
+      target: production
+      dockerfile: ./docker-configurations/nodejs/Dockerfile
+    volumes:
+      - .:/src
+    command: node app.js
     ports:
-      - "6379:6379"
+      - "3000"
+    environment:
+      NODE_ENV: production
+      DEBUG: nodejs-docker-express:*
+  queue_processor:
+    build:
+      context: ./
+      target: production
+      dockerfile: ./docker-configurations/nodejs/Dockerfile
+    volumes:
+      - .:/src
+    command: node queueProcessor.js
+    ports:
+      - "3001"
+    environment:
+      NODE_ENV: production
+      DEBUG: nodejs-docker-express:*
+  redis_cache:
+    image: redis
+
     restart: always
     environment:
       - REDIS_DISABLE_COMMANDS=FLUSHDB,FLUSHALL,CONFIG
-  redis-queue:
+  redis_queue:
     image: redis
-    container_name: redis_queue
-    ports:
-      - "6380:6379"
+
     restart: always
     environment:
       - REDIS_DISABLE_COMMANDS=FLUSHDB,FLUSHALL,CONFIG
