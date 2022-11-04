@@ -50,11 +50,16 @@ async function createShort(longUrl) {
 
 //Retornar url larga en base a una corta
 async function getLongUrl(_shortUrl) {
-  const url = await prisma.url.findUnique({
+  const url = await prisma.url.findFirst({
     where: {
       shortUrl: _shortUrl,
+      deletedAt: null,
     },
   });
+
+  if (url == null) {
+    return null;
+  }
 
   return url.longUrl;
 }

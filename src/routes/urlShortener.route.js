@@ -11,7 +11,7 @@ router.get("/", (req, res) => {
 router.post("/create", urlShortenerController.createShort);
 
 //Retornar url larga en base a una corta
-router.get("/longUrl/:shortUrl", urlShortenerController.getLongUrl);
+router.get("/long-url/:shortUrl", urlShortenerController.getLongUrl);
 
 //Redireccionar url corta a url larga
 router.get("/:shortUrl", urlShortenerController.shortRedirect);

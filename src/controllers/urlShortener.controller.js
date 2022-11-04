@@ -15,7 +15,12 @@ async function createShort(req, res) {
 async function getLongUrl(req, res) {
   try {
     const { shortUrl: _shortUrl } = req.params;
-    res.status(200).send(await urlShortenerService.getLongUrl(_shortUrl));
+    const longUrl = await urlShortenerService.getLongUrl(_shortUrl);
+    if (longUrl == null) {
+      res.status(404).send("No hemos encontrado la url");
+      return false;
+    }
+    res.status(200).send(longUrl);
   } catch (error) {
     console.error("Error al devolver url larga", error.message);
     res.status(500).json("Ha ocurrido un error al procesar su solicitud");
