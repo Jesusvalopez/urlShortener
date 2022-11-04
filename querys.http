@@ -1,8 +1,17 @@
-POST http://localhost/create HTTP/1.1
+POST http://localhost/ HTTP/1.1
 content-type: application/json
 
 {
 	"longUrl": "https://articulo.mercadolibre.cl/MLC-538236036-termo-cafe-agua-caliente-globalchile-_JM?variation=93744240785#reco_item_pos=0&reco_backend=machinalis-homes&reco_backend_type=function&reco_client=home_navigation-recommendations&reco_id=29d96792-2b7b-4d62-9663-24751defe048&c_id=/home/navigation-recommendations/element&c_element_order=1&c_uid=5b4fbecb-fa2d-43ff-a444-0d2e6d8d52b2"
+
+}
+
+###
+POST http://localhost/ HTTP/1.1
+content-type: application/json
+
+{
+	"longUrl": "https://articulo.mercadolibre.cl/MLC-617621708-escritorio-neo-ajustable-180x70-form-office-_JM?variation=175650361588#reco_item_pos=2&reco_backend=machinalis-homes&reco_backend_type=function&reco_client=home_navigation-trend-recommendations&reco_id=ea3b520e-4172-4448-b51e-9c874e314d74&c_id=/home/navigation-trends-recommendations/element&c_element_order=3&c_uid=2ce7fb34-0139-44ef-bc2b-5d575b12ad4b"
 
 }
 

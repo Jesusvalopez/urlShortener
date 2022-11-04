@@ -8,7 +8,7 @@ router.get("/", (req, res) => {
 });
 
 //Crear url corta a partir de una larga
-router.post("/create", urlShortenerController.createShort);
+router.post("/", urlShortenerController.createShort);
 
 //Retornar url larga en base a una corta
 router.get("/long-url/:shortUrl", urlShortenerController.getLongUrl);
