@@ -32,7 +32,7 @@ async function shortRedirect(req, res) {
       res.status(404).send("No hemos encontrado la url");
       return false;
     }
-    res.redirect(url);
+    res.status(301).redirect(url);
   } catch (error) {
     console.error("Error al redireccionar url corta a larga", error.message);
     res.status(500).json("Ha ocurrido un error al procesar su solicitud");
